@@ -7,7 +7,7 @@
     "build": "babel src -d dist",
     "start": "node dist/server.js",
     "build:start": "npm run build && node dist/server.js",
-    "dev": "nodemon --exec babel-node src/server.js",
+    "dev": "nodemon --exec babel-node dev.js",
     "test": "jest -i"
   },
   "devDependencies": {

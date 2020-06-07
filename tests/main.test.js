@@ -1,5 +1,5 @@
 import "dotenv/config";
-import Queue from "../src";
+import Queue from "../dist";
 import { ItemFaker } from "./fakers";
 import faker from "faker";
 
