@@ -28,11 +28,8 @@
     };
     var timingPromise;
     var threads = 0;
-    var service;
 
-    if (params.connection) {
-      service = _azureStorage.default.createQueueService(params.connection);
-    } // ---------------------------------------------------------------------------
+    const service = _azureStorage.default.createQueueService(params.connection); // ---------------------------------------------------------------------------
 
     /**
      * Inicializador de conexão e criação de fila
@@ -123,7 +120,7 @@
     this.process = function (handler) {
       //
       this.emit("process");
-      return new Promise(async resolve => {
+      return new Promise(async (resolve, reject) => {
         //
         await this.init();
 
@@ -142,14 +139,32 @@
           } // READING QUEUE ---------------------
 
 
-          let messages = await this.readQueue();
+          let messages = [];
+
+          try {
+            messages = await this.readQueue();
+          } catch (e) {//
+          }
+
+          if (messages.length == 0) {
+            this.emit("no-results");
+          }
 
           if (this.__stoped) {
             break;
           }
 
           for (let i in messages) {
-            callHandler(handler, messages[i]);
+            if (config.async) {
+              callHandler(handler, messages[i]);
+              continue;
+            }
+
+            try {
+              await callHandler(handler, messages[i]);
+            } catch (e) {
+              console.log("Unknown Handler Error");
+            }
           }
         }
 
@@ -169,13 +184,24 @@
           this.emit("after-handler", message); // DELETE MESSAGE
 
           await this.deleteMessage(message); //
-        } catch (e) {
+        } catch (error) {
           closeThread();
-          return reject();
+
+          try {
+            this.emit("handler-error", error);
+          } catch (e) {}
+
+          return resolve({
+            success: false,
+            error
+          });
         }
 
         closeThread();
-        resolve();
+        resolve({
+          success: true,
+          message
+        });
       });
     }; // ---------------------------------------------------------------------------
 
@@ -248,18 +274,23 @@
 
 
     this.createQueue = function () {
-      return new Promise((resolve, reject) => {
+      return new Promise(resolve => {
         this.emit("create-queue");
-        service.createQueueIfNotExists(queue, (err, results, res) => {
+        service.createQueueIfNotExists(queue, (err, results, response) => {
           this.createQueuePromise = false;
           this.tableExists = true;
 
           if (err) {
             this.emit("create-queue.fail", err);
-            reject(err);
+            resolve({
+              success: false
+            });
           } else {
-            this.emit("create-queue.ok", res);
-            resolve(res);
+            this.emit("create-queue.ok", response);
+            resolve({
+              success: true,
+              response
+            });
           }
         });
       });

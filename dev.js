@@ -1,6 +1,6 @@
 require("dotenv/config");
 
-import Queue from "./src/index.js";
+import Queue from "./dist/index.js";
 
 const queue = new Queue("integration-events", {
   connection: process.env.CONNECTION_STRING,
